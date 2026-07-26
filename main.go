@@ -13,12 +13,15 @@ import (
 )
 
 func main() {
+	log.Fatal(http.ListenAndServe("localhost:8080", newMux()))
+}
+
+func newMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/funds", getFunds)
 	mux.HandleFunc("GET /api/v1/prices/latest", getLatestPrices)
 	mux.HandleFunc("GET /api/v1/funds/{code}/prices", getFundPrices)
-
-	log.Fatal(http.ListenAndServe("localhost:8080", mux))
+	return mux
 }
 
 // writeJSON encodes v as indented JSON alongside the given status code.
