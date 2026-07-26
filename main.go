@@ -1,26 +1,38 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	router := gin.Default()
-	router.GET("/api/v1/funds", getFunds)                // -> []Fund
-	router.GET("/api/v1/prices/latest", getLatestPrices) // all funds, most recent date
-	// router.GET("/api/v1/funds/:code/prices?from=&to=&limit=") // -> []SharePRice
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/funds", getFunds)
+	mux.HandleFunc("GET /api/v1/prices/latest", getLatestPrices)
+	mux.HandleFunc("GET /api/v1/funds/{code}/prices", getFundPrices)
 
-	log.Fatal(router.Run("localhost:8080"))
+	log.Fatal(http.ListenAndServe("localhost:8080", mux))
 }
 
-// getFunds responds with the list of all funds as JSON
-func getFunds(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, allFunds())
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "    ")
+	if err := enc.Encode(v); err != nil {
+		log.Printf("writeJSON: %v", err)
+	}
 }
 
-func getLatestPrices(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, latestPrices())
+func getFunds(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, allFunds())
+}
+
+func getLatestPrices(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, latestPrices())
+}
+
+func getFundPrices(w http.ResponseWriter, r *http.Request) {
+	//todo
 }
