@@ -2,7 +2,14 @@ package main
 
 import "slices"
 
-// seedFunds is placeholder data
+// Everything in this file is scaffolding for a database that does not exist yet.
+//
+// The seed slices below stand in for SQLite tables while the schema settles.
+// Handlers reach the data only through the functions at the bottom of the file,
+// never through the slices directly, so swapping in a real store should not
+// require touching main.go.
+
+// seedFunds is placeholder fund metadata, hand-copied from tsp.gov.
 var seedFunds = []Fund{
 	{Code: "C", Name: "Common Stock Index Investment Fund", ShortName: "C Fund", Kind: "core", Active: true},
 	{Code: "S", Name: "Small cap stock Index Investment Fund", ShortName: "S Fund", Kind: "core", Active: true},
@@ -15,8 +22,13 @@ var seedFunds = []Fund{
 	{Code: "LINCOME", Name: "Lifecycle Income Fund", ShortName: "L Income", Kind: "lifecycle", TargetYear: nil, Active: true},
 }
 
-// seedPrices is placeholder data, hand-copied from the TSP share price CSV.
-// Replaced by the SQLite store - delete when the ingest job lands.
+// seedPrices is placeholder price data, hand-copied from the TSP share price CSV.
+//
+// The rows deliberately span a weekend — Friday 07-24 to Monday 07-27 — so that
+// any "latest price" logic written against them cannot quietly assume yesterday
+// exists. TSP posts on business days only.
+//
+// Delete once the nightly ingest job lands.
 var seedPrices = []SharePrice{
 	{FundCode: "C", Date: mustDate("2026-07-27"), Price: 119.3425},
 	{FundCode: "G", Date: mustDate("2026-07-27"), Price: 20.0740},
@@ -29,8 +41,18 @@ var seedPrices = []SharePrice{
 	{FundCode: "L2030", Date: mustDate("2026-07-23"), Price: 62.3082},
 }
 
+// latestPrices returns every fund's price for the most recent date on record,
+// or an empty slice when there is no data at all.
+//
+// This makes two full passes over the data: one to find the newest date, one to
+// collect the rows carrying it. That is O(n) per request — around 0.6ms against
+// a full 23-year dataset, which is fine for this endpoint but will not survive
+// the date-range queries still to come. In SQLite it becomes a single
+// WHERE date = (SELECT MAX(date) FROM prices) against an index.
 func latestPrices() []SharePrice {
 	if len(seedPrices) == 0 {
+		// Two reasons this guard is not optional: slices.MaxFunc panics on an
+		// empty slice, and a nil slice marshals to JSON null rather than [].
 		return []SharePrice{}
 	}
 
@@ -47,4 +69,10 @@ func latestPrices() []SharePrice {
 	return result
 }
 
+// allFunds returns metadata for every fund.
+//
+// The returned slice shares its backing array with seedFunds, so a caller that
+// modifies an element modifies the seed data itself. That is safe today because
+// the only caller serializes it and discards it; wrap this in slices.Clone the
+// moment that stops being true.
 func allFunds() []Fund { return seedFunds }
