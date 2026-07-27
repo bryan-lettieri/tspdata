@@ -2,12 +2,7 @@ package main
 
 import "testing"
 
-// TestFundPricesSortedNewestFirst pins the ordering fundPrices promises.
-//
-// It checks the invariant — each row is at least as new as the one after it —
-// rather than comparing against a hardcoded list of dates. An expected-values
-// test would have to be edited every time the seed data changes; this one keeps
-// working, and it is the actual property callers depend on.
+// TestFundPricesSortedNewestFirst verifies the ordering promised by fundPrices.
 func TestFundPricesSortedNewestFirst(t *testing.T) {
 	got := fundPrices("C")
 

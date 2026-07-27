@@ -2,12 +2,8 @@ package main
 
 import "slices"
 
-// Everything in this file is scaffolding for a database that does not exist yet.
-//
-// The seed slices below stand in for SQLite tables while the schema settles.
-// Handlers reach the data only through the functions at the bottom of the file,
-// never through the slices directly, so swapping in a real store should not
-// require touching main.go.
+// The seed slices stand in for SQLite tables while the storage layer is developed.
+// Handlers access them through the query functions below.
 
 // seedFunds is placeholder fund metadata, hand-copied from tsp.gov.
 var seedFunds = []Fund{
@@ -22,17 +18,9 @@ var seedFunds = []Fund{
 	{Code: "LINCOME", Name: "Lifecycle Income Fund", ShortName: "L Income", Kind: "lifecycle", TargetYear: nil, Active: true},
 }
 
-// seedPrices is placeholder price data, hand-copied from the TSP share price CSV.
-//
-// The rows deliberately span a weekend — Friday 07-24 to Monday 07-27 — so that
-// any "latest price" logic written against them cannot quietly assume yesterday
-// exists. TSP posts on business days only.
-//
-// They are also deliberately out of date order. Do not tidy them: sorting the
-// seed data would let an ordering bug in the query functions pass unnoticed,
-// because the output would look correct without the sort ever running.
-//
-// Delete once the nightly ingest job lands.
+// seedPrices is intentionally unordered and spans a weekend. This ensures query
+// behavior does not depend on insertion order or consecutive calendar dates.
+// Delete it once the nightly ingest job is implemented.
 var seedPrices = []SharePrice{
 	{FundCode: "C", Date: mustDate("2026-07-23"), Price: 119.2733},
 	{FundCode: "G", Date: mustDate("2026-07-23"), Price: 20.0714},
@@ -48,19 +36,9 @@ var seedPrices = []SharePrice{
 // latestPrices returns every fund's price for the most recent date on record,
 // or an empty slice when there is no data at all.
 //
-// This makes two full passes over the data: one to find the newest date, one to
-// collect the rows carrying it. That is O(n) per request — around 0.6ms against
-// a full 23-year dataset, which is fine for this endpoint but will not survive
-// the date-range queries still to come. In SQLite it becomes a single
-// WHERE date = (SELECT MAX(date) FROM prices) against an index.
-//
-// TODO: unlike fundPrices, the rows here come back in seedPrices order, which is
-// incidental rather than promised. Sort by FundCode so the response has a stable
-// documented order — SQLite will not preserve insertion order either.
+// TODO: sort by FundCode so the API has a stable response order.
 func latestPrices() []SharePrice {
 	if len(seedPrices) == 0 {
-		// Two reasons this guard is not optional: slices.MaxFunc panics on an
-		// empty slice, and a nil slice marshals to JSON null rather than [].
 		return []SharePrice{}
 	}
 
@@ -78,23 +56,13 @@ func latestPrices() []SharePrice {
 }
 
 // allFunds returns metadata for every fund.
-//
-// The returned slice shares its backing array with seedFunds, so a caller that
-// modifies an element modifies the seed data itself. That is safe today because
-// the only caller serializes it and discards it; wrap this in slices.Clone the
-// moment that stops being true.
+// The returned slice shares its backing array with the seed data.
 func allFunds() []Fund { return seedFunds }
 
 // fundPrices returns every recorded price for one fund, newest date first. The
 // code must already be normalized — callers uppercase at the HTTP boundary.
 //
-// The comparator's operands are reversed on purpose — b before a — which is what
-// makes the sort descending. Newest-first is the ordering that makes a limit
-// useful: "the most recent 100" is nearly always what a caller wants, where the
-// oldest 100 essentially never is.
-//
-// TODO: from/to/limit are still unimplemented. Apply them after the sort, so
-// that limiting takes the most recent rows rather than an arbitrary slice.
+// TODO: add date filtering and a bounded limit.
 func fundPrices(code string) []SharePrice {
 	result := []SharePrice{}
 	for _, p := range seedPrices {
@@ -108,9 +76,7 @@ func fundPrices(code string) []SharePrice {
 	return result
 }
 
-// fundByCode returns the fund with the given code and reports whether it exists.
-// The comma-ok shape mirrors a map lookup: on a miss it returns the zero Fund,
-// so callers must check the bool before trusting the value.
+// fundByCode returns the matching fund and whether it exists.
 func fundByCode(code string) (Fund, bool) {
 	for _, f := range seedFunds {
 		if f.Code == code {

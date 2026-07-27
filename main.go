@@ -1,9 +1,5 @@
-// Command tspdata serves Thrift Savings Plan fund share prices as a small JSON API.
-//
-// TSP publishes a share price CSV each business night. This program exposes the
-// most recent prices plus historical data for every fund. Storage is currently a
-// pair of in-memory seed slices (see store.go); SQLite replaces them once the
-// nightly ingest job exists.
+// Command tspdata serves Thrift Savings Plan fund prices as a JSON API.
+// Data is currently seeded in memory and will eventually be stored in SQLite.
 package main
 
 import (
@@ -16,9 +12,6 @@ import (
 func main() {
 	const addr = "localhost:8080"
 
-	// Logged before ListenAndServe, which blocks until the server stops. Note
-	// this prints even if the bind then fails — the Fatal below is what tells
-	// you it did.
 	log.Printf("listening on http://%s", addr)
 	log.Fatal(http.ListenAndServe(addr, newMux()))
 }
@@ -31,20 +24,15 @@ func newMux() *http.ServeMux {
 	return mux
 }
 
-// writeJSON encodes v as compact JSON alongside the given status code.
-//
-// The order of the first two calls is load-bearing: every header must be set
-// before WriteHeader, and WriteHeader before any body is written. A header set
-// afterwards is discarded silently — no error, no panic, it simply never
-// reaches the client.
+// writeJSON sends v as a compact JSON response.
 func writeJSON(w http.ResponseWriter, status int, v any) {
+	// Headers must be set before the status or body is written.
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(v); err != nil {
-		// The status line and headers are already on the wire, so the response
-		// can no longer be corrected to report this. Logging is all that is left.
+		// The status is already committed, so only logging remains possible.
 		log.Printf("writeJSON: %v", err)
 	}
 }
@@ -59,22 +47,12 @@ func getLatestPrices(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, latestPrices())
 }
 
-// getFundPrices responds with the price history for a single fund, or 404 when
-// the code is not one we know.
+// getFundPrices responds with one fund's history. Unknown funds return 404;
+// known funds without prices return an empty array.
 //
-// The path value is uppercased here rather than inside the store: a URL is
-// untrusted input, so normalizing at the boundary lets everything downstream
-// assume a canonical code. Note the 404 branch returns — falling through would
-// write a second body and status.
-//
-// A missing fund is a 404; a known fund with no matching rows is a 200 with an
-// empty array. Those are different answers and callers need to tell them apart.
-//
-// TODO: from/to/limit are still ignored. They come from r.URL.Query(), since
-// ServeMux patterns match method and path only. The response also needs a
-// stable sort and a bounded default limit — one fund's full history is roughly
-// 6k rows, about 300 KB of compact JSON.
+// TODO: validate from, to, and limit query parameters and enforce a default limit.
 func getFundPrices(w http.ResponseWriter, r *http.Request) {
+	// Normalize user input at the HTTP boundary.
 	code := strings.ToUpper(r.PathValue("code"))
 
 	if _, ok := fundByCode(code); !ok {
