@@ -10,10 +10,17 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func main() {
-	log.Fatal(http.ListenAndServe("localhost:8080", newMux()))
+	const addr = "localhost:8080"
+
+	// Logged before ListenAndServe, which blocks until the server stops. Note
+	// this prints even if the bind then fails — the Fatal below is what tells
+	// you it did.
+	log.Printf("listening on http://%s", addr)
+	log.Fatal(http.ListenAndServe(addr, newMux()))
 }
 
 func newMux() *http.ServeMux {
@@ -24,7 +31,7 @@ func newMux() *http.ServeMux {
 	return mux
 }
 
-// writeJSON encodes v as indented JSON alongside the given status code.
+// writeJSON encodes v as compact JSON alongside the given status code.
 //
 // The order of the first two calls is load-bearing: every header must be set
 // before WriteHeader, and WriteHeader before any body is written. A header set
@@ -35,7 +42,6 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.WriteHeader(status)
 
 	enc := json.NewEncoder(w)
-	enc.SetIndent("", "    ")
 	if err := enc.Encode(v); err != nil {
 		// The status line and headers are already on the wire, so the response
 		// can no longer be corrected to report this. Logging is all that is left.
@@ -53,14 +59,28 @@ func getLatestPrices(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, latestPrices())
 }
 
-// getFundPrices responds with the price history for a single fund.
+// getFundPrices responds with the price history for a single fund, or 404 when
+// the code is not one we know.
 //
-// TODO: unimplemented — currently returns 200 with an empty body, because a
-// handler that writes nothing still gets a default 200 from net/http.
+// The path value is uppercased here rather than inside the store: a URL is
+// untrusted input, so normalizing at the boundary lets everything downstream
+// assume a canonical code. Note the 404 branch returns — falling through would
+// write a second body and status.
 //
-// The fund code comes from the path wildcard via r.PathValue("code"); the
-// from/to/limit filters come from r.URL.Query(), since ServeMux patterns match
-// method and path only. An unknown code should be a 404, and the response needs
-// a bounded default limit — the full history is roughly 90k rows.
+// A missing fund is a 404; a known fund with no matching rows is a 200 with an
+// empty array. Those are different answers and callers need to tell them apart.
+//
+// TODO: from/to/limit are still ignored. They come from r.URL.Query(), since
+// ServeMux patterns match method and path only. The response also needs a
+// stable sort and a bounded default limit — one fund's full history is roughly
+// 6k rows, about 300 KB of compact JSON.
 func getFundPrices(w http.ResponseWriter, r *http.Request) {
+	code := strings.ToUpper(r.PathValue("code"))
+
+	if _, ok := fundByCode(code); !ok {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown fund " + code})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, fundPrices(code))
 }
