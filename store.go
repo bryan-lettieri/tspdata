@@ -1,6 +1,9 @@
 package main
 
-import "slices"
+import (
+	"cmp"
+	"slices"
+)
 
 // The seed slices stand in for SQLite tables while the storage layer is developed.
 // Handlers access them through the query functions below.
@@ -43,10 +46,22 @@ type priceQuery struct {
 	Limit int
 }
 
+// allFunds returns metadata for every fund.
+// The returned slice shares its backing array with the seed data.
+func allFunds() []Fund { return seedFunds }
+
+// fundByCode returns the matching fund and whether it exists.
+func fundByCode(code string) (Fund, bool) {
+	for _, f := range seedFunds {
+		if f.Code == code {
+			return f, true
+		}
+	}
+	return Fund{}, false
+}
+
 // latestPrices returns every fund's price for the most recent date on record,
-// or an empty slice when there is no data at all.
-//
-// TODO: sort by FundCode so the API has a stable response order.
+// sorted by fund code, or an empty slice when there is no data at all.
 func latestPrices() []SharePrice {
 	if len(seedPrices) == 0 {
 		return []SharePrice{}
@@ -62,15 +77,16 @@ func latestPrices() []SharePrice {
 			result = append(result, p)
 		}
 	}
+
+	slices.SortFunc(result, func(a, b SharePrice) int {
+		return cmp.Compare(a.FundCode, b.FundCode)
+	})
+
 	return result
 }
 
-// allFunds returns metadata for every fund.
-// The returned slice shares its backing array with the seed data.
-func allFunds() []Fund { return seedFunds }
-
-// fundPrices returns every recorded price for one fund, newest date first. The
-// code must already be normalized — callers uppercase at the HTTP boundary.
+// fundPrices returns one fund's prices matching q, newest date first. The code
+// must already be normalized — callers uppercase at the HTTP boundary.
 func fundPrices(q priceQuery) []SharePrice {
 	result := []SharePrice{}
 	for _, p := range seedPrices {
@@ -83,6 +99,7 @@ func fundPrices(q priceQuery) []SharePrice {
 		if q.To != nil && p.Date.Compare(*q.To) > 0 {
 			continue
 		}
+
 		result = append(result, p)
 	}
 	slices.SortFunc(result, func(a, b SharePrice) int {
@@ -93,14 +110,4 @@ func fundPrices(q priceQuery) []SharePrice {
 		result = result[:q.Limit]
 	}
 	return result
-}
-
-// fundByCode returns the matching fund and whether it exists.
-func fundByCode(code string) (Fund, bool) {
-	for _, f := range seedFunds {
-		if f.Code == code {
-			return f, true
-		}
-	}
-	return Fund{}, false
 }

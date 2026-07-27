@@ -1,3 +1,6 @@
 # General
 .DS_Store
 .localized
+
+# Claude Code
+.claude/settings.local.json
