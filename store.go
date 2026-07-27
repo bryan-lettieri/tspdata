@@ -33,6 +33,16 @@ var seedPrices = []SharePrice{
 	{FundCode: "L2030", Date: mustDate("2026-07-24"), Price: 62.2717},
 }
 
+// priceQuery narrows a request for one fund's price history. From and To are
+// inclusive bounds; nil means unbounded on that side. Limit has already been
+// defaulted and capped by the caller.
+type priceQuery struct {
+	Code  string
+	From  *Date
+	To    *Date
+	Limit int
+}
+
 // latestPrices returns every fund's price for the most recent date on record,
 // or an empty slice when there is no data at all.
 //
@@ -61,18 +71,27 @@ func allFunds() []Fund { return seedFunds }
 
 // fundPrices returns every recorded price for one fund, newest date first. The
 // code must already be normalized — callers uppercase at the HTTP boundary.
-//
-// TODO: add date filtering and a bounded limit.
-func fundPrices(code string) []SharePrice {
+func fundPrices(q priceQuery) []SharePrice {
 	result := []SharePrice{}
 	for _, p := range seedPrices {
-		if p.FundCode == code {
-			result = append(result, p)
+		if p.FundCode != q.Code {
+			continue
 		}
+		if q.From != nil && p.Date.Compare(*q.From) < 0 {
+			continue
+		}
+		if q.To != nil && p.Date.Compare(*q.To) > 0 {
+			continue
+		}
+		result = append(result, p)
 	}
 	slices.SortFunc(result, func(a, b SharePrice) int {
 		return b.Date.Compare(a.Date)
 	})
+	// Applied after the sort, so a limit returns the most recent
+	if q.Limit > 0 && q.Limit < len(result) {
+		result = result[:q.Limit]
+	}
 	return result
 }
 

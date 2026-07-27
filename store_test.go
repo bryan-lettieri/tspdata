@@ -4,7 +4,7 @@ import "testing"
 
 // TestFundPricesSortedNewestFirst verifies the ordering promised by fundPrices.
 func TestFundPricesSortedNewestFirst(t *testing.T) {
-	got := fundPrices("C")
+	got := fundPrices(priceQuery{Code: "C"})
 
 	if len(got) < 2 {
 		t.Fatalf("got %d rows, need at least 2 to check ordering", len(got))
