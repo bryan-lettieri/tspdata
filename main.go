@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -27,6 +28,7 @@ func main() {
 // newMux registers the API routes.
 func newMux() *http.ServeMux {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /csv", testParseCSV) //used for testing, will be deleted
 	mux.HandleFunc("GET /api/v1/funds", getFunds)
 	mux.HandleFunc("GET /api/v1/funds/{code}/prices", getFundPrices)
 	mux.HandleFunc("GET /api/v1/prices/latest", getLatestPrices)
@@ -111,4 +113,25 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 // writeError sends an error in the one shape every endpoint uses.
 func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+// used for testing, will be deleted
+func testParseCSV(w http.ResponseWriter, r *http.Request) {
+	// open input file
+	f, err := os.Open("testdata/prices.csv")
+	if err != nil {
+		log.Printf("testParseCSV: %v", err)
+		writeError(w, http.StatusInternalServerError, "could not open csv")
+		return
+	}
+	// close input on exit
+	defer f.Close()
+
+	prices, err := parseCSV(f)
+	if err != nil {
+		log.Printf("testParseCSV: %v", err)
+		writeError(w, http.StatusInternalServerError, "could not parse price data")
+		return
+	}
+	writeJSON(w, http.StatusOK, prices)
 }

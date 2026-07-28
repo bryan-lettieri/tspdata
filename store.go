@@ -9,6 +9,8 @@ import (
 // Handlers access them through the query functions below.
 
 // seedFunds is placeholder fund metadata, hand-copied from tsp.gov.
+// TODO: decide at the SQLite step whether this list should be derived from the
+// CSV header instead, so a newly added fund cannot have prices but no metadata.
 var seedFunds = []Fund{
 	{Code: "C", Name: "Common Stock Index Investment Fund", ShortName: "C Fund", Kind: "core", Active: true},
 	{Code: "S", Name: "Small cap stock Index Investment Fund", ShortName: "S Fund", Kind: "core", Active: true},
@@ -18,6 +20,13 @@ var seedFunds = []Fund{
 	{Code: "L2030", Name: "Lifecycle 2030 Fund", ShortName: "L 2030", Kind: "lifecycle", TargetYear: ptr(2030), Active: true},
 	{Code: "L2035", Name: "Lifecycle 2035 Fund", ShortName: "L 2035", Kind: "lifecycle", TargetYear: ptr(2035), Active: true},
 	{Code: "L2040", Name: "Lifecycle 2040 Fund", ShortName: "L 2040", Kind: "lifecycle", TargetYear: ptr(2040), Active: true},
+	{Code: "L2045", Name: "Lifecycle 2045 Fund", ShortName: "L 2045", Kind: "lifecycle", TargetYear: ptr(2045), Active: true},
+	{Code: "L2050", Name: "Lifecycle 2050 Fund", ShortName: "L 2050", Kind: "lifecycle", TargetYear: ptr(2050), Active: true},
+	{Code: "L2055", Name: "Lifecycle 2055 Fund", ShortName: "L 2055", Kind: "lifecycle", TargetYear: ptr(2055), Active: true},
+	{Code: "L2060", Name: "Lifecycle 2060 Fund", ShortName: "L 2060", Kind: "lifecycle", TargetYear: ptr(2060), Active: true},
+	{Code: "L2065", Name: "Lifecycle 2065 Fund", ShortName: "L 2065", Kind: "lifecycle", TargetYear: ptr(2065), Active: true},
+	{Code: "L2070", Name: "Lifecycle 2070 Fund", ShortName: "L 2070", Kind: "lifecycle", TargetYear: ptr(2070), Active: true},
+	{Code: "L2075", Name: "Lifecycle 2075 Fund", ShortName: "L 2075", Kind: "lifecycle", TargetYear: ptr(2075), Active: true},
 	{Code: "LINCOME", Name: "Lifecycle Income Fund", ShortName: "L Income", Kind: "lifecycle", TargetYear: nil, Active: true},
 }
 
