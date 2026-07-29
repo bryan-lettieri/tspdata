@@ -30,19 +30,43 @@ var seedFunds = []Fund{
 	{Code: "LINCOME", Name: "Lifecycle Income Fund", ShortName: "L Income", Kind: "lifecycle", TargetYear: nil, Active: true},
 }
 
-// seedPrices is intentionally unordered and spans a weekend. This ensures query
-// behavior does not depend on insertion order or consecutive calendar dates.
-// Delete it once the nightly ingest job is implemented.
+// seedPrices contains two complete daily snapshots copied from the CSV fixture.
+// The oldest snapshot is stored first so queries cannot rely on insertion order
+// to return the newest price first. Delete it once the nightly ingest job is
+// implemented.
 var seedPrices = []SharePrice{
 	{FundCode: "C", Date: mustDate("2026-07-23"), Price: 119.2733},
+	{FundCode: "S", Date: mustDate("2026-07-23"), Price: 114.3141},
+	{FundCode: "I", Date: mustDate("2026-07-23"), Price: 63.1339},
 	{FundCode: "G", Date: mustDate("2026-07-23"), Price: 20.0714},
+	{FundCode: "F", Date: mustDate("2026-07-23"), Price: 20.7658},
 	{FundCode: "L2030", Date: mustDate("2026-07-23"), Price: 62.3082},
-	{FundCode: "C", Date: mustDate("2026-07-27"), Price: 119.3425},
-	{FundCode: "G", Date: mustDate("2026-07-27"), Price: 20.0740},
-	{FundCode: "L2030", Date: mustDate("2026-07-27"), Price: 62.2718},
+	{FundCode: "L2035", Date: mustDate("2026-07-23"), Price: 19.1213},
+	{FundCode: "L2040", Date: mustDate("2026-07-23"), Price: 73.6486},
+	{FundCode: "L2045", Date: mustDate("2026-07-23"), Price: 20.4583},
+	{FundCode: "L2050", Date: mustDate("2026-07-23"), Price: 45.5054},
+	{FundCode: "L2055", Date: mustDate("2026-07-23"), Price: 23.8351},
+	{FundCode: "L2060", Date: mustDate("2026-07-23"), Price: 23.8319},
+	{FundCode: "L2065", Date: mustDate("2026-07-23"), Price: 23.8287},
+	{FundCode: "L2070", Date: mustDate("2026-07-23"), Price: 14.1226},
+	{FundCode: "L2075", Date: mustDate("2026-07-23"), Price: 12.3361},
+	{FundCode: "LINCOME", Date: mustDate("2026-07-23"), Price: 30.6476},
 	{FundCode: "C", Date: mustDate("2026-07-24"), Price: 119.3426},
+	{FundCode: "S", Date: mustDate("2026-07-24"), Price: 113.9880},
+	{FundCode: "I", Date: mustDate("2026-07-24"), Price: 62.9110},
 	{FundCode: "G", Date: mustDate("2026-07-24"), Price: 20.0739},
+	{FundCode: "F", Date: mustDate("2026-07-24"), Price: 20.7899},
 	{FundCode: "L2030", Date: mustDate("2026-07-24"), Price: 62.2717},
+	{FundCode: "L2035", Date: mustDate("2026-07-24"), Price: 19.1069},
+	{FundCode: "L2040", Date: mustDate("2026-07-24"), Price: 73.5874},
+	{FundCode: "L2045", Date: mustDate("2026-07-24"), Price: 20.4399},
+	{FundCode: "L2050", Date: mustDate("2026-07-24"), Price: 45.4611},
+	{FundCode: "L2055", Date: mustDate("2026-07-24"), Price: 23.8043},
+	{FundCode: "L2060", Date: mustDate("2026-07-24"), Price: 23.8012},
+	{FundCode: "L2065", Date: mustDate("2026-07-24"), Price: 23.7980},
+	{FundCode: "L2070", Date: mustDate("2026-07-24"), Price: 14.1044},
+	{FundCode: "L2075", Date: mustDate("2026-07-24"), Price: 12.3203},
+	{FundCode: "LINCOME", Date: mustDate("2026-07-24"), Price: 30.6409},
 }
 
 // priceQuery narrows a request for one fund's price history. From and To are

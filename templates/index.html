@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>TSP Fund Prices</title>
+	<meta name="description" content="Thrift Savings Plan fund prices, mirrored daily.">
+	<style>
+		body {
+			font-family: system-ui, sans-serif;
+		}
+
+		h1,
+		p {
+			padding: 0.1rem 0.5rem;
+		}
+
+		table {
+			border-collapse: collapse;
+		}
+
+		caption {
+			padding: 0 0.5rem;
+			text-align: left;
+		}
+
+		th,
+		td {
+			padding: 0.1rem 0.5rem;
+		}
+
+		th:first-child,
+		td:first-child {
+			text-align: left;
+		}
+
+		th:not(:first-child),
+		td:not(:first-child) {
+			text-align: right;
+		}
+
+		td {
+			font-variant-numeric: tabular-nums;
+		}
+
+		tbody th {
+			font-weight: normal;
+		}
+
+		tbody tr:nth-child(even) {
+			background-color: #f2f2f2;
+		}
+	</style>
+</head>
+<body>
+	<header><h1>TSP Share Prices</h1></header>
+	<main>
+		{{if .Rows}}
+			<table>
+				<caption>
+					Prices as of <time datetime="{{.AsOf}}">{{.AsOf}}</time>
+				</caption>
+				<thead>
+					<tr>
+						<th scope="col">Fund</th>
+						<th scope="col">Price</th>
+						<th scope="col">Change</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Rows}}
+					<tr>
+						<th scope="row">{{.Fund}}</th>
+						<td>{{printf "%.4f" .Price}}</td>
+						<td>
+							{{if .HasChange}}
+								{{printf "%+.2f%%" .Change}}
+							{{else}}
+								—
+							{{end}}
+						</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		{{else}}
+		<p>No price data is currently available.</p>
+		{{end}}
+	</main>
+	<footer>
+		<p>Data source: <a href="https://tsp.gov">TSP.gov</a>.</p>
+	</footer>
+</body>
+</html>
